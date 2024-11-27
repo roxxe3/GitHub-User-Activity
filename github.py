@@ -1,40 +1,44 @@
 import requests
-import json
+import sys
 
 
+if len(sys.argv) < 2:
+    print("Usage: python github.py <username>")
+    sys.exit(1)
+
+username = sys.argv[1]
 
 # Define the API endpoint
-url = 'https://api.github.com/users/kamranahmedse/events'
+url = f'https://api.github.com/users/{username}/events'
 
-event_types = {
-    "CommitCommentEvent",
-    "CreateEvent",
-    "DeleteEvent",
-    "ForkEvent",
-    "GollumEvent",
-    "IssueCommentEvent",
-    "IssuesEvent",
-    "MemberEvent",
-    "PublicEvent",
-    "PullRequestEvent",
-    "PullRequestReviewEvent",
-    "PullRequestReviewCommentEvent",
-    "PushEvent",
-    "ReleaseEvent",
-    "SponsorshipEvent",
-    "WatchEvent"
-}
 
-# Send a GET request to the API
 response = requests.get(url)
 
-# Check if the request was successful
 if response.status_code == 200:
-    # Parse the JSON response
     data = response.json()
-    # Print the type of the event
+    
     for event in data:
-        if event["payload"]["action"]:
-            print(f"{event["payload"]["action"]} {event['type']} in {event["repo"]["name"]}")
+        event_type = event['type']
+        repo_name = event['repo']['name']
+        
+        if event_type == "PushEvent":
+            print(f"Pushed {event['payload']['size']} commit(s) to {repo_name}")
+        elif event_type == "IssuesEvent":
+            print(f"{event['payload']['action'].capitalize()} an issue in {repo_name}")
+        elif event_type == "WatchEvent":
+            print(f"Starred {repo_name}")
+        elif event_type == "PullRequestEvent":
+            print(f"PullRequest in {repo_name}")
+        elif event_type == "IssueCommentEvent":
+            print(f"IssueComment in {repo_name}")
+        elif event_type == "PullRequestReviewCommentEvent":
+            print(f"PullRequestReviewComment in {repo_name}")
+        elif event_type == "PullRequestReviewEvent":
+            print(f"PullRequestReview in {repo_name}")
+        elif event_type == "CreateEvent" and event['payload']['ref_type'] == 'branch':
+            print(f"Created branch in {repo_name}")
+        else:
+            action = event.get('payload', {}).get('action', 'performed an action on')
+            print(f"{action.capitalize()} {event_type} in {repo_name}")
 else:
     print(f"Failed to fetch data. Status code: {response.status_code}")
